@@ -1,0 +1,75 @@
+{
+  "info": {
+    "name": "Smart Inventory API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000/api" },
+    { "key": "token", "value": "" },
+    { "key": "itemId", "value": "1" }
+  ],
+  "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+  "item": [
+    {
+      "name": "Register",
+      "auth": { "type": "noauth" },
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/auth/register",
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@demo.com\",\n  \"full_name\": \"Demo Admin\",\n  \"password\": \"admin123\"\n}" }
+      }
+    },
+    {
+      "name": "Login (saves token)",
+      "auth": { "type": "noauth" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+        "const data = pm.response.json();",
+        "pm.test('Has access_token', () => pm.expect(data.access_token).to.be.a('string'));",
+        "pm.collectionVariables.set('token', data.access_token);"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+        "url": "{{baseUrl}}/auth/login",
+        "body": { "mode": "urlencoded", "urlencoded": [
+          { "key": "username", "value": "admin@demo.com" },
+          { "key": "password", "value": "admin123" }
+        ] }
+      }
+    },
+    { "name": "Current user", "request": { "method": "GET", "url": "{{baseUrl}}/auth/me" } },
+    {
+      "name": "Create item",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Created', () => pm.response.to.have.status(201));",
+        "pm.collectionVariables.set('itemId', pm.response.json().id);"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/items",
+        "body": { "mode": "raw", "raw": "{\n  \"sku\": \"USB-C-01\",\n  \"name\": \"USB-C Charger\",\n  \"category\": \"Accessories\",\n  \"quantity\": 40,\n  \"reorder_level\": 10,\n  \"unit_price\": 19.99,\n  \"location\": \"A2-07\"\n}" }
+      }
+    },
+    {
+      "name": "List items (search + filter)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/items?q=usb&low_stock=false&skip=0&limit=20" }
+    },
+    { "name": "Dashboard stats", "request": { "method": "GET", "url": "{{baseUrl}}/items/stats" } },
+    { "name": "Get item", "request": { "method": "GET", "url": "{{baseUrl}}/items/{{itemId}}" } },
+    {
+      "name": "Update item",
+      "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/items/{{itemId}}",
+        "body": { "mode": "raw", "raw": "{ \"unit_price\": 21.5, \"location\": \"A2-08\" }" } }
+    },
+    {
+      "name": "Adjust stock",
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{baseUrl}}/items/{{itemId}}/adjust",
+        "body": { "mode": "raw", "raw": "{ \"change\": -5, \"reason\": \"Sold - order #1042\" }" } }
+    },
+    { "name": "Stock history", "request": { "method": "GET", "url": "{{baseUrl}}/items/{{itemId}}/movements" } },
+    { "name": "Delete item", "request": { "method": "DELETE", "url": "{{baseUrl}}/items/{{itemId}}" } }
+  ]
+}
